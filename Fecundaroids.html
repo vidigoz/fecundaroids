@@ -43,7 +43,7 @@ canvas{display:block;width:100%;height:100%}
 #btns{position:absolute;right:0;bottom:0;display:flex;align-items:flex-end;gap:14px;
   padding-bottom:calc(22px + env(safe-area-inset-bottom,0px));padding-right:max(18px,env(safe-area-inset-right,0px))}
 #btns button{pointer-events:auto;border-radius:50%;border:3px solid #000;font-family:var(--display);color:#000;box-shadow:3px 3px 0 rgba(246,231,200,.6);touch-action:none}
-#bBomb{width:68px;height:68px;background:var(--fg);font-size:11px;line-height:1.1}
+#bBomb{width:68px;height:68px;background:var(--fg);display:flex;align-items:center;justify-content:center;padding:0}
 #bFire{width:92px;height:92px;background:var(--orange);font-size:14px}
 #btns button.on{transform:translate(2px,2px);box-shadow:1px 1px 0 rgba(246,231,200,.6)}
 #overlay .row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;align-items:center}
@@ -67,11 +67,8 @@ canvas{display:block;width:100%;height:100%}
   <button id="mute" aria-label="Silenciar sonido" title="Sonido (M)">🔊</button>
   <div id="overlay">
     <h1>FECUNDAROIDS</h1>
-    <p>Los óvulos caen del cielo. Fecúndalos antes de que toquen el suelo y salen gateando.</p>
+    <p>El futuro de la humanidad está en tus bolas. Fecunda la mayor cantidad de óvulos.</p>
     <ul>
-      <li><b>Coágulo rojo:</b> agárralo y llegan dos compas, uno blanco y uno café, que copian tus movimientos y disparan contigo.</li>
-      <li><b>Condón granada:</b> explota y fecunda todo lo que esté cerca. Ganas uno por oleada.</li>
-      <li><b>Oleada 10:</b> suena la alarma y llega el DIU de cobre. Sus iones endurecen los óvulos y te persiguen. Rómpelo para recuperar tu fertilidad.</li>
       <li class="kb"><b>Teclado:</b> ← → girar · ↑ avanzar · ESPACIO disparar · B lanzar condón</li>
       <li class="tc"><b>Táctil:</b> arrastra en la mitad izquierda para apuntar y moverte; botones a la derecha.</li>
     </ul>
@@ -84,13 +81,13 @@ canvas{display:block;width:100%;height:100%}
         <button type="submit" class="ghost tiny">ENTRAR</button>
         <span id="devErr" role="alert"></span>
       </form>
-      <div id="devMenu" hidden><button id="bossTest" class="ghost">PROBAR JEFE · OLEADA 10</button></div>
+      <div id="devMenu" hidden><button id="bossTest" class="ghost">PROBAR JEFE · OLEADA 10</button><button id="bossTest2" class="ghost">PROBAR JEFE · OLEADA 20</button></div>
     </div>
   </div>
   <div id="touch">
     <div id="stick"></div>
     <div id="stickHint">ARRASTRA</div>
-    <div id="btns"><button id="bBomb">COND<br>ÓN</button><button id="bFire">FIRE</button></div>
+    <div id="btns"><button id="bBomb" aria-label="Lanzar condón"><svg viewBox="0 0 40 40" width="42" height="42" aria-hidden="true"><ellipse cx="20" cy="7.5" rx="4.2" ry="3.6" fill="#fffaf0" stroke="#000" stroke-width="2.4"/><ellipse cx="20" cy="21" rx="11.5" ry="14" fill="#fffaf0" stroke="#000" stroke-width="2.6"/><ellipse cx="15.5" cy="15" rx="2.6" ry="5" transform="rotate(18 15.5 15)" fill="#fff" stroke="none" opacity=".9"/><ellipse cx="20" cy="34" rx="12.5" ry="3.8" fill="#f2781e" stroke="#000" stroke-width="2.4"/></svg></button><button id="bFire">FIRE</button></div>
   </div>
 </div>
 
@@ -220,7 +217,7 @@ function explode(x,y){
   blasts.push({x,y,R,t:0});shake=.35;SFX.boom();
   for(let i=0;i<40;i++){const a=Math.random()*7,s=rnd(80,420);parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rnd(.5,1.1),col:Math.random()<.7?C.cream:C.orange,r:rnd(2,6)})}
   for(const e of eggs){if(!e.dead&&Math.hypot(e.x-x,e.y-y)<R+e.r){e.hp=0;killEgg(e)}}
-  if(boss&&boss.phase==='fight'&&Math.hypot(boss.x-x,boss.y+50*bk()-y)<R+50*bk())damageBoss(10,x,y);
+  if(boss&&boss.kind==='diu'&&boss.phase==='fight'&&Math.hypot(boss.x-x,boss.y+50*bk()-y)<R+50*bk())damageBoss(10,x,y);
   for(const i of ions){if(!i.dead&&Math.hypot(i.x-x,i.y-y)<R){i.hp-=2;if(i.hp<=0){i.dead=true;burst(i.x,i.y,COPPER,8)}}}
 }
 function killEgg(e){
@@ -233,17 +230,18 @@ function makeBaby(x,y,dir){
 }
 
 /* ---------- JEFE: DIU de cobre (por ahora solo en la oleada 10) ---------- */
-const BOSS_WAVES=[10],COPPER='#d4793a';
-let waveTotal=0,alarmT=0,alarmDone=false,boss=null,bossDone=false,ions=[],sparks=[],frags=[],winT=0,ovaryT=0,pills=[],viagraT=0,viagraMsgT=0;
+const BOSS_WAVES=[10,20],COPPER='#d4793a';
+let waveTotal=0,alarmT=0,alarmDone=false,boss=null,bossDone=false,ions=[],sparks=[],frags=[],winT=0,ovaryT=0,pills=[],viagraT=0,viagraMsgT=0,winMsg=['¡HAS RECUPERADO','TU FERTILIDAD!'];
 // un ion pegado a un óvulo lo hace el doble de difícil (no se acumula)
 function coat(e){if(e.cu)return;e.cu=true;e.hp*=2;e.flash=.15;SFX.stick();burst(e.x,e.y,COPPER,8)}
 function cleanCopper(){for(const e of eggs)if(e.cu){e.cu=false;e.hp=Math.max(1,Math.ceil(e.hp/2));burst(e.x,e.y,COPPER,6)}}
 function bk(){return Math.max(.65,Math.min(1.25,Math.min(W,H)/560))}
 function spawnBoss(){
+  if(wave===20){spawnCondomBoss();return}
   const cr=[];
   for(let i=0;i<12;i++){const onStem=i%3===2;let x=onStem?rnd(-5,5):rnd(-58,58),y=onStem?rnd(14,110):rnd(-5,5);const pts=[[x,y]];
     for(let j=0;j<4;j++){x+=onStem?rnd(-5,5):rnd(-8,8);y+=onStem?rnd(-8,8):rnd(-5,5);pts.push([x,y])}cr.push(pts)}
-  boss={x:W/2,y:-220,ty:Math.max(H*.2,110),t:0,hp:90,max:90,phase:'enter',flash:0,fireT:1.5,cracks:cr,shown:0};
+  boss={kind:'diu',x:W/2,y:-220,ty:Math.max(H*.2,110),t:0,hp:90,max:90,phase:'enter',flash:0,fireT:1.5,cracks:cr,shown:0};
   ions=[];sparks=[];frags=[];ovaryT=2.5;SFX.rumble();
 }
 function hitBoss(x,y,r){const b=boss,k=bk(),lx=x-b.x,ly=y-b.y;
@@ -264,7 +262,8 @@ function releaseIons(n){const b=boss,k=bk();
 }
 function updateBoss(dt){
   const b=boss,k=bk();
-  if(b){b.t+=dt;b.flash=Math.max(0,b.flash-dt);
+  if(b&&b.kind==='condom')updateCondom(dt);
+  else if(b){b.t+=dt;b.flash=Math.max(0,b.flash-dt);
     if(b.phase==='enter'){b.y+=(b.ty-b.y)*Math.min(1,dt*1.8);shake=Math.max(shake,.08);if(Math.abs(b.y-b.ty)<4)b.phase='fight'}
     else if(b.phase==='fight'){
       const sway=Math.max(20,Math.min(W*.22,W*.5-72*k-110));
@@ -296,7 +295,7 @@ function updateBoss(dt){
   ions=ions.filter(i=>!i.dead);
   // pastilla azul que suelta el DIU al morir
   for(const p of pills){p.t+=dt;p.y+=p.vy*dt;p.x+=Math.sin(p.t*2)*30*dt;
-    if(Math.hypot(p.x-ship.x,p.y-ship.y)<18*SR+18){p.got=true;lives=Math.min(3,lives+1);viagraT=10;viagraMsgT=2;SFX.pickup();burst(p.x,p.y,'#4d7dff',22)}}
+    if(Math.hypot(p.x-ship.x,p.y-ship.y)<18*SR+18){p.got=true;lives=Math.min(3,lives+1);viagraT=30;viagraMsgT=2;SFX.pickup();burst(p.x,p.y,'#4d7dff',22)}}
   pills=pills.filter(p=>!p.got&&p.y<H+30);
   for(const s of sparks){s.t+=dt;s.x+=s.vx*dt;s.y+=s.vy*dt;
     if(ship.inv<=0&&Math.hypot(ship.x-s.x,ship.y-s.y)<5+12*SR){s.dead=true;ship.inv=1.5;burst(ship.x,ship.y,C.red,10);hurt(.25,.2)}
@@ -305,6 +304,63 @@ function updateBoss(dt){
   for(const f of frags){f.vy+=700*dt;f.x+=f.vx*dt;f.y+=f.vy*dt;f.r+=f.vr*dt;f.life-=dt}
   frags=frags.filter(f=>f.life>0&&f.y<H+40);
 }
+
+/* ---------- JEFE 2: condón gigante (oleada 20): se vence llenándolo de espermas ---------- */
+function condomDims(b){const k=bk(),g=1+b.fill*.9;return{rx:46*k*g,ry:62*k*g,k}}
+function spawnCondomBoss(){
+  boss={kind:'condom',x:W/2,y:-260,ty:Math.max(H*.3,200),t:0,fill:0,phase:'enter',flash:0,gx:W/2,gy:H*.3,goT:0};
+  ovaryT=2.5;SFX.rumble();
+}
+function updateCondom(dt){
+  const b=boss,d=condomDims(b);b.t+=dt;b.flash=Math.max(0,b.flash-dt);
+  if(b.phase==='enter'){b.y+=(b.ty-b.y)*Math.min(1,dt*1.8);shake=Math.max(shake,.08);if(Math.abs(b.y-b.ty)<4)b.phase='fight';return}
+  if(b.phase==='fight'){
+    // vaga por la pantalla huyendo de ti, siempre más lento que la nave
+    b.goT-=dt;
+    const minY=d.ry+95,maxY=Math.max(minY+20,H*.72);
+    if(b.goT<=0||Math.hypot(b.gx-b.x,b.gy-b.y)<12){b.goT=rnd(2,3.5);let bd=-1;
+      for(let i=0;i<4;i++){const x=rnd(d.rx,Math.max(d.rx+1,W-d.rx)),y=rnd(minY,maxY),dist=Math.hypot(x-ship.x,y-ship.y);if(dist>bd){bd=dist;b.gx=x;b.gy=y}}}
+    const a=Math.atan2(b.gy-b.y,b.gx-b.x),sp=110+b.fill*40;b.x+=Math.cos(a)*sp*dt;b.y+=Math.sin(a)*sp*dt;
+    b.x=Math.max(d.rx,Math.min(W-d.rx,b.x));
+    if(spawnLeft<=0){ovaryT-=dt;if(ovaryT<=0){ovaryT=rnd(1.8,2.8);spawnEgg()}}
+    // solo los espermas lo llenan (las bombas no)
+    for(const s of sperms){if(s.life<=0)continue;const dx=(s.x-b.x)/d.rx,dy=(s.y-b.y)/d.ry;
+      if(dx*dx+dy*dy<1){s.life=0;b.fill=Math.min(1,b.fill+1/60);b.flash=.07;SFX.bossHit();burst(s.x,s.y,C.cream,4);
+        if(b.fill>=1){b.phase='dying';b.die=1.6;SFX.crack();break}}}
+    return}
+  if(b.phase==='dying'){b.die-=dt;shake=Math.max(shake,.25);b.x+=rnd(-3,3);b.y+=rnd(-3,3);
+    if(Math.random()<dt*14)burst(b.x+rnd(-d.rx,d.rx),b.y+rnd(-d.ry,d.ry),C.cream,5);
+    if(b.die<=0)explodeCondom()}
+}
+function explodeCondom(){const b=boss,x=b.x,y=b.y;
+  blasts.push({x,y,R:Math.max(W,H)*.9,t:0});shake=.8;SFX.boom();setTimeout(()=>SFX.boom(),140);
+  for(let i=0;i<120;i++){const a=Math.random()*7,s=rnd(100,600);parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rnd(.6,1.5),col:i%3?C.cream:'#fffaf0',r:rnd(2,7)})}
+  // preña a todos los óvulos en pantalla
+  for(const e of eggs)if(!e.dead&&e.y>0){e.hp=0;killEgg(e)}
+  pills.push({x,y:Math.max(60,y-20),vy:75,t:0});
+  boss=null;bossDone=true;winT=4;winMsg=['¡REVENTÓ EL CONDÓN!','¡EMBARAZO MASIVO!'];setTimeout(()=>SFX.win(),450);
+}
+function drawCondomBoss(b){const {rx,ry,k}=condomDims(b),f=b.fill;
+  cx.save();const wob=1+Math.sin(b.t*(5+f*10))*.025*(1+f*2);
+  cx.translate(b.x,b.y);cx.scale(wob,1/wob);cx.lineJoin='round';cx.lineCap='round';
+  // depósito en la punta
+  cx.fillStyle=b.flash>0?'#fff':'rgba(246,231,200,.7)';cx.strokeStyle='#000';cx.lineWidth=3;
+  cx.beginPath();cx.ellipse(0,-ry-8*k,12*k,10*k,0,0,7);cx.fill();cx.stroke();
+  // cuerpo translúcido con el líquido subiendo
+  cx.beginPath();cx.ellipse(0,0,rx,ry,0,0,7);cx.fillStyle=b.flash>0?'#fff':`rgba(246,${Math.round(231-60*f)},${Math.round(200-70*f)},.5)`;cx.fill();
+  cx.save();cx.clip();cx.fillStyle='#fffaf0';cx.fillRect(-rx,ry-2*ry*f,rx*2,2*ry*f+2);
+  cx.strokeStyle='rgba(0,0,0,.18)';cx.lineWidth=2;cx.beginPath();for(let x=-rx;x<=rx;x+=6)cx.lineTo(x,ry-2*ry*f+Math.sin(b.t*5+x*.12)*3);cx.stroke();cx.restore();
+  cx.strokeStyle='#000';cx.lineWidth=3.5;cx.beginPath();cx.ellipse(0,0,rx,ry,0,0,7);cx.stroke();
+  cx.fillStyle='rgba(255,255,255,.65)';cx.beginPath();cx.ellipse(-rx*.5,-ry*.35,rx*.1,ry*.32,.35,0,7);cx.fill();
+  // aro enrollado en la boca
+  cx.fillStyle=C.orange;cx.lineWidth=3;cx.beginPath();cx.ellipse(0,ry-3,rx*.6,11*k,0,0,7);cx.fill();cx.stroke();
+  // cara
+  const ax=Math.atan2(ship.y-b.y,ship.x-b.x),px=Math.cos(ax)*4*k,py=Math.sin(ax)*4*k;
+  for(const sx of[-1,1]){cx.fillStyle='#fff';cx.lineWidth=2.5;cx.beginPath();cx.ellipse(sx*rx*.36,-ry*.2,9*k,11*k,0,0,7);cx.fill();cx.stroke();
+    cx.fillStyle='#000';cx.beginPath();cx.arc(sx*rx*.36+px,-ry*.2+py,4*k,0,7);cx.fill();
+    cx.lineWidth=3;cx.beginPath();cx.moveTo(sx*rx*.36-9*k,-ry*.2-16*k+sx*3*k);cx.lineTo(sx*rx*.36+9*k,-ry*.2-16*k-sx*3*k);cx.stroke()}
+  cx.lineWidth=3;cx.beginPath();cx.arc(0,ry*.12,rx*.28,.15,Math.PI-.15);cx.stroke();
+  cx.restore()}
 function crumble(){const b=boss,k=bk();b.hidden=true;SFX.crumble();
   for(let i=0;i<24;i++){const onStem=i>=13,x=b.x+(onStem?rnd(-7,7):-66+i*11)*k,y=b.y+(onStem?14+(i-13)*10:rnd(-6,6))*k;
     frags.push({x,y,vx:rnd(-70,70),vy:rnd(-140,0),r:rnd(0,6.3),vr:rnd(-5,5),s:rnd(7,12)*k,col:onStem&&i%2?COPPER:'#efe4cf',life:4,
@@ -314,7 +370,7 @@ function explodeBoss(){const b=boss,k=bk(),x=b.x,y=b.y+60*k,R=Math.max(170,Math.
   for(let i=0;i<80;i++){const a=Math.random()*7,s=rnd(100,520);parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rnd(.6,1.4),col:[C.cream,COPPER,C.orange][i%3],r:rnd(2,7)})}
   for(const f of frags){const a=Math.atan2(f.y-y,f.x-x);f.vx+=Math.cos(a)*rnd(200,420);f.vy+=Math.sin(a)*rnd(200,420)-150}
   pills.push({x,y:y-20,vy:75,t:0});
-  ions=[];sparks=[];cleanCopper();boss=null;bossDone=true;winT=4;setTimeout(()=>SFX.win(),450);
+  ions=[];sparks=[];cleanCopper();boss=null;bossDone=true;winT=4;winMsg=['¡HAS RECUPERADO','TU FERTILIDAD!'];setTimeout(()=>SFX.win(),450);
 }
 
 function update(dt){
@@ -345,7 +401,7 @@ function update(dt){
   for(const c of condoms){c.fuse-=dt;c.x+=c.vx*dt;c.y+=c.vy*dt;c.vx*=Math.pow(.25,dt);c.vy*=Math.pow(.25,dt);c.a+=c.spin*dt;
     let hit=c.fuse<=0||c.x<0||c.x>W||c.y<0||c.y>H;
     for(const e of eggs)if(!e.dead&&Math.hypot(c.x-e.x,c.y-e.y)<e.r+10)hit=true;
-    if(boss&&boss.phase==='fight'&&hitBoss(c.x,c.y,10))hit=true;
+    if(boss&&boss.kind==='diu'&&boss.phase==='fight'&&hitBoss(c.x,c.y,10))hit=true;
     for(const i of ions)if(!i.dead&&Math.hypot(c.x-i.x,c.y-i.y)<26)hit=true;
     if(hit){c.done=true;explode(Math.max(0,Math.min(W,c.x)),Math.max(0,Math.min(H,c.y)))}}
   condoms=condoms.filter(c=>!c.done);
@@ -542,7 +598,6 @@ function draw(time){
   if(flashT>0){cx.fillStyle=`rgba(242,120,30,${flashT})`;cx.fillRect(0,0,W,H)}
   cx.textAlign='center';cx.font=`${Math.min(28,W/14)}px Bungee, Impact, sans-serif`;
   if(waveBanner>0&&state==='play'){cx.globalAlpha=Math.min(1,waveBanner);cx.fillStyle='#000';cx.fillText('OLEADA '+wave,W/2+3,H*.4+3);cx.fillStyle=C.orange;cx.fillText('OLEADA '+wave,W/2,H*.4);cx.globalAlpha=1}
-  if(pickupT>0){cx.globalAlpha=Math.min(1,pickupT);cx.fillStyle='#000';cx.fillText('¡LLEGARON LOS COMPAS!',W/2+3,H*.4+3);cx.fillStyle=C.cream;cx.fillText('¡LLEGARON LOS COMPAS!',W/2,H*.4);cx.globalAlpha=1}
   drawBossUI(time);
   cx.restore();
 }
@@ -557,7 +612,7 @@ function drawOvary(o,alpha){
   cx.lineWidth=2;cx.beginPath();cx.arc(0,o.r*.4,o.r*.16,Math.PI+.4,-.4);cx.stroke();
   cx.restore();
 }
-function drawBoss(){const b=boss;if(!b||b.hidden)return;const k=bk();
+function drawBoss(){const b=boss;if(!b||b.hidden)return;if(b.kind==='condom'){drawCondomBoss(b);return}const k=bk();
   cx.save();let ox=0,oy=0;if(b.phase==='dying'){ox=rnd(-4,4);oy=rnd(-4,4)}
   cx.translate(b.x+ox,b.y+oy);cx.scale(k,k);cx.lineCap='round';cx.lineJoin='round';
   const white=b.flash>0?'#ffffff':'#efe4cf';
@@ -606,18 +661,15 @@ function drawBossUI(time){
   if(alarmT>0){const p=.5+.5*Math.sin(time/90);
     const vg=cx.createRadialGradient(W/2,H/2,Math.min(W,H)*.25,W/2,H/2,Math.max(W,H)*.75);vg.addColorStop(0,'rgba(179,38,30,0)');vg.addColorStop(1,`rgba(220,30,20,${.35+.3*p})`);
     cx.fillStyle=vg;cx.fillRect(0,0,W,H);
-    const size=Math.min(46,W/14),y=H*.42;
-    stripes(y-size*1.4,time);stripes(y+size*2.1,time);
-    if(Math.floor(time/220)%4!==3)bigText(['¡TU FERTILIDAD','ESTÁ EN RIESGO!'],'#ff2a1f',size,y);
   }
-  if(boss){const bw=Math.max(160,Math.min(W-150,420)),bx=(W-bw)/2,by=76,f=boss.hp/boss.max;
+  if(boss){const cd=boss.kind==='condom',bw=Math.max(160,Math.min(W-150,420)),bx=(W-bw)/2,by=76,f=cd?boss.fill:boss.hp/boss.max;
     cx.fillStyle='#000';cx.fillRect(bx-3,by-3,bw+6,16);
-    const gr=cx.createLinearGradient(bx,0,bx+bw,0);gr.addColorStop(0,C.red);gr.addColorStop(1,COPPER);cx.fillStyle=gr;cx.fillRect(bx,by,bw*f,10);
+    const gr=cx.createLinearGradient(bx,0,bx+bw,0);gr.addColorStop(0,cd?C.cream:C.red);gr.addColorStop(1,cd?C.orange:COPPER);cx.fillStyle=gr;cx.fillRect(bx,by,bw*f,10);
     cx.strokeStyle=C.cream;cx.lineWidth=1.5;cx.strokeRect(bx-1.5,by-1.5,bw+3,13);
-    cx.font='800 11px Nunito, system-ui';cx.fillStyle=C.cream;cx.textAlign='center';cx.textBaseline='alphabetic';cx.fillText('DIU DE COBRE',W/2,by-7)}
+    cx.font='800 11px Nunito, system-ui';cx.fillStyle=C.cream;cx.textAlign='center';cx.textBaseline='alphabetic';cx.fillText(cd?'CONDÓN GIGANTE · LLÉNALO':'DIU DE COBRE',W/2,by-7)}
   if(viagraMsgT>0){const sz=Math.min(30,W/16);bigText(['¡VIAGRA! +1 VIDA','DISPARO RÁPIDO'],'#6f97ff',sz,H*.6,Math.min(1,viagraMsgT/.5))}
   if(winT>0){const a=Math.min(1,winT/.6),s=Math.min(1,(4-winT)*3),size=Math.min(44,W/14)*(.6+.4*s);
-    bigText(['¡HAS RECUPERADO','TU FERTILIDAD!'],C.orange,size,H*.42,a)}
+    bigText(winMsg,C.orange,size,H*.42,a)}
 }
 const demo={b:null};
 function menuDemo(time){
@@ -641,6 +693,7 @@ function startGame(w){
 }
 document.getElementById('start').addEventListener('click',()=>startGame(1));
 document.getElementById('bossTest').addEventListener('click',()=>startGame(10));
+document.getElementById('bossTest2').addEventListener('click',()=>startGame(20));
 // menú DEV con clave
 const devBtn=document.getElementById('devBtn'),devForm=document.getElementById('devForm'),devPass=document.getElementById('devPass'),devErr=document.getElementById('devErr'),devMenu=document.getElementById('devMenu');
 devBtn.addEventListener('click',()=>{if(!devMenu.hidden)return;devForm.hidden=!devForm.hidden;devBtn.setAttribute('aria-expanded',String(!devForm.hidden));if(!devForm.hidden){devErr.textContent='';devPass.value='';devPass.focus()}});
