@@ -44,6 +44,9 @@ canvas{display:block;width:100%;height:100%}
   padding-bottom:calc(22px + env(safe-area-inset-bottom,0px));padding-right:max(18px,env(safe-area-inset-right,0px))}
 #btns button{pointer-events:auto;border-radius:50%;border:3px solid #000;font-family:var(--display);color:#000;box-shadow:3px 3px 0 rgba(246,231,200,.6);touch-action:none}
 #bBomb{width:68px;height:68px;background:var(--fg);display:flex;align-items:center;justify-content:center;padding:0}
+#bViagra{position:relative;width:60px;height:60px;background:#4d7dff;display:flex;align-items:center;justify-content:center;padding:0}
+#bViagra[hidden],#hud div[hidden]{display:none}
+#bVgN{position:absolute;top:-6px;right:-6px;min-width:22px;height:22px;border-radius:11px;background:var(--orange);border:2px solid #000;font-size:12px;line-height:18px;text-align:center;color:#000}
 #bFire{width:92px;height:92px;background:var(--orange);font-size:14px}
 #btns button.on{transform:translate(2px,2px);box-shadow:1px 1px 0 rgba(246,231,200,.6)}
 #overlay .row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;align-items:center}
@@ -61,6 +64,7 @@ canvas{display:block;width:100%;height:100%}
   <div id="hud">
     <div><span class="lbl">BEBÉS</span><span id="score">0</span></div>
     <div><span class="lbl">OLEADA</span><span id="wave">1</span></div>
+    <div id="vgHud" hidden><span class="lbl">VIAGRA (V)</span><span id="vg">0</span></div>
     <div><span class="lbl">CONDONES</span><span id="bombs">3</span><span id="assist"></span></div>
     <div class="r"><span class="lbl">VIDAS</span><span id="lives"></span></div>
   </div>
@@ -87,7 +91,7 @@ canvas{display:block;width:100%;height:100%}
   <div id="touch">
     <div id="stick"></div>
     <div id="stickHint">ARRASTRA</div>
-    <div id="btns"><button id="bBomb" aria-label="Lanzar condón"><svg viewBox="0 0 40 40" width="42" height="42" aria-hidden="true"><ellipse cx="20" cy="7.5" rx="4.2" ry="3.6" fill="#fffaf0" stroke="#000" stroke-width="2.4"/><ellipse cx="20" cy="21" rx="11.5" ry="14" fill="#fffaf0" stroke="#000" stroke-width="2.6"/><ellipse cx="15.5" cy="15" rx="2.6" ry="5" transform="rotate(18 15.5 15)" fill="#fff" stroke="none" opacity=".9"/><ellipse cx="20" cy="34" rx="12.5" ry="3.8" fill="#f2781e" stroke="#000" stroke-width="2.4"/></svg></button><button id="bFire">FIRE</button></div>
+    <div id="btns"><button id="bViagra" aria-label="Usar viagra" hidden><svg viewBox="0 0 40 40" width="44" height="44" aria-hidden="true"><defs><linearGradient id="vga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fb0ff"/><stop offset="1" stop-color="#2448c9"/></linearGradient></defs><path d="M20 4 L37 20 L20 36 L3 20 Z" fill="url(#vga)" stroke="#000" stroke-width="2.6" stroke-linejoin="round"/><ellipse cx="14" cy="14" rx="4.5" ry="1.8" transform="rotate(-40 14 14)" fill="#fff" opacity=".6"/><text x="20" y="25" text-anchor="middle" font-family="Bungee, Impact, sans-serif" font-size="12" fill="#0b1a55">V</text></svg><span id="bVgN">0</span></button><button id="bBomb" aria-label="Lanzar condón"><svg viewBox="0 0 40 40" width="42" height="42" aria-hidden="true"><ellipse cx="20" cy="7.5" rx="4.2" ry="3.6" fill="#fffaf0" stroke="#000" stroke-width="2.4"/><ellipse cx="20" cy="21" rx="11.5" ry="14" fill="#fffaf0" stroke="#000" stroke-width="2.6"/><ellipse cx="15.5" cy="15" rx="2.6" ry="5" transform="rotate(18 15.5 15)" fill="#fff" stroke="none" opacity=".9"/><ellipse cx="20" cy="34" rx="12.5" ry="3.8" fill="#f2781e" stroke="#000" stroke-width="2.4"/></svg></button><button id="bFire">FIRE</button></div>
   </div>
 </div>
 
@@ -109,8 +113,8 @@ const SKINS={
 
 const keys={left:false,right:false,up:false,fire:false};
 const km={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',ArrowUp:'up',KeyW:'up',Space:'fire'};
-let bombPressed=false;
-addEventListener('keydown',e=>{if(km[e.code]){keys[km[e.code]]=true;e.preventDefault()}if(e.code==='KeyB'||e.code==='ShiftLeft'||e.code==='KeyX'){if(!e.repeat)bombPressed=true;e.preventDefault()}});
+let bombPressed=false,viagraPressed=false,vgK=0;
+addEventListener('keydown',e=>{if(km[e.code]){keys[km[e.code]]=true;e.preventDefault()}if(e.code==='KeyB'||e.code==='ShiftLeft'||e.code==='KeyX'){if(!e.repeat)bombPressed=true;e.preventDefault()}if(e.code==='KeyV'&&!e.repeat)viagraPressed=true});
 addEventListener('keyup',e=>{if(km[e.code]){keys[km[e.code]]=false;e.preventDefault()}});
 
 // joystick táctil: la dirección apunta la nave, la distancia es el empuje
@@ -123,6 +127,9 @@ stick.addEventListener('pointerup',joyEnd);stick.addEventListener('pointercancel
 const bFire=document.getElementById('bFire'),bBomb=document.getElementById('bBomb');
 bFire.addEventListener('pointerdown',e=>{e.preventDefault();keys.fire=true;bFire.classList.add('on')});
 ['pointerup','pointercancel','pointerleave'].forEach(t=>bFire.addEventListener(t,e=>{keys.fire=false;bFire.classList.remove('on')}));
+const bViagra=document.getElementById('bViagra');
+bViagra.addEventListener('pointerdown',e=>{e.preventDefault();viagraPressed=true;bViagra.classList.add('on')});
+['pointerup','pointercancel','pointerleave'].forEach(t=>bViagra.addEventListener(t,()=>bViagra.classList.remove('on')));
 bBomb.addEventListener('pointerdown',e=>{e.preventDefault();bombPressed=true;bBomb.classList.add('on')});
 ['pointerup','pointercancel','pointerleave'].forEach(t=>bBomb.addEventListener(t,()=>bBomb.classList.remove('on')));
 
@@ -134,7 +141,7 @@ const stars=Array.from({length:90},()=>({x:Math.random(),y:Math.random(),r:rnd(.
 function reset(startWave=1){
   ship={x:W/2,y:H*.7,vx:0,vy:0,a:-Math.PI/2,inv:0,wob:0};
   sperms=[];eggs=[];babies=[];parts=[];clots=[];condoms=[];blasts=[];score=0;lives=3;wave=startWave-1;bombs=3;assistT=0;bombPressed=false;
-  boss=null;ions=[];sparks=[];frags=[];pills=[];alarmT=0;winT=0;viagraT=0;viagraMsgT=0;nextWave();
+  boss=null;ions=[];sparks=[];frags=[];pills=[];alarmT=0;winT=0;viagraT=0;viagraMsgT=0;viagras=0;viagraPressed=false;vgK=0;nextWave();
 }
 function nextWave(){if(wave>0)SFX.wave();wave++;spawnLeft=waveTotal=5+wave*3;spawnT=1;waveBanner=2;alarmDone=false;bossDone=false;if(wave>1)bombs=Math.min(5,bombs+1)}
 function spawnEgg(ox,oy){
@@ -231,7 +238,7 @@ function makeBaby(x,y,dir){
 
 /* ---------- JEFE: DIU de cobre (por ahora solo en la oleada 10) ---------- */
 const BOSS_WAVES=[10,20],COPPER='#d4793a';
-let waveTotal=0,alarmT=0,alarmDone=false,boss=null,bossDone=false,ions=[],sparks=[],frags=[],winT=0,ovaryT=0,pills=[],viagraT=0,viagraMsgT=0,winMsg=['¡HAS RECUPERADO','TU FERTILIDAD!'];
+let waveTotal=0,alarmT=0,alarmDone=false,boss=null,bossDone=false,ions=[],sparks=[],frags=[],winT=0,ovaryT=0,pills=[],viagraT=0,viagraMsgT=0,viagras=0,winMsg=['¡HAS RECUPERADO','TU FERTILIDAD!'];
 // un ion pegado a un óvulo lo hace el doble de difícil (no se acumula)
 function coat(e){if(e.cu)return;e.cu=true;e.hp*=2;e.flash=.15;SFX.stick();burst(e.x,e.y,COPPER,8)}
 function cleanCopper(){for(const e of eggs)if(e.cu){e.cu=false;e.hp=Math.max(1,Math.ceil(e.hp/2));burst(e.x,e.y,COPPER,6)}}
@@ -295,7 +302,7 @@ function updateBoss(dt){
   ions=ions.filter(i=>!i.dead);
   // pastilla azul que suelta el DIU al morir
   for(const p of pills){p.t+=dt;p.y+=p.vy*dt;p.x+=Math.sin(p.t*2)*30*dt;
-    if(Math.hypot(p.x-ship.x,p.y-ship.y)<18*SR+18){p.got=true;lives=Math.min(3,lives+1);viagraT=30;viagraMsgT=2;SFX.pickup();burst(p.x,p.y,'#4d7dff',22)}}
+    if(Math.hypot(p.x-ship.x,p.y-ship.y)<18*SR+18){p.got=true;lives=Math.min(3,lives+1);viagras+=3;viagraMsgT=2;SFX.pickup();burst(p.x,p.y,'#4d7dff',22)}}
   pills=pills.filter(p=>!p.got&&p.y<H+30);
   for(const s of sparks){s.t+=dt;s.x+=s.vx*dt;s.y+=s.vy*dt;
     if(ship.inv<=0&&Math.hypot(ship.x-s.x,ship.y-s.y)<5+12*SR){s.dead=true;ship.inv=1.5;burst(ship.x,ship.y,C.red,10);hurt(.25,.2)}
@@ -323,6 +330,9 @@ function updateCondom(dt){
     const a=Math.atan2(b.gy-b.y,b.gx-b.x),sp=110+b.fill*40;b.x+=Math.cos(a)*sp*dt;b.y+=Math.sin(a)*sp*dt;
     b.x=Math.max(d.rx,Math.min(W-d.rx,b.x));
     if(spawnLeft<=0){ovaryT-=dt;if(ovaryT<=0){ovaryT=rnd(1.8,2.8);spawnEgg()}}
+    // los óvulos que toca se recubren de hule: hay que romperlo (3 impactos, como un óvulo grande) antes del óvulo
+    for(const e of eggs){if(e.dead||e.latex>0||e.y<0)continue;const dx=(e.x-b.x)/(d.rx+e.r),dy=(e.y-b.y)/(d.ry+e.r);
+      if(dx*dx+dy*dy<1){e.latex=3;e.flash=.15;burst(e.x,e.y,'#bfe8ff',10)}}
     // solo los espermas lo llenan (las bombas no)
     for(const s of sperms){if(s.life<=0)continue;const dx=(s.x-b.x)/d.rx,dy=(s.y-b.y)/d.ry;
       if(dx*dx+dy*dy<1){s.life=0;b.fill=Math.min(1,b.fill+1/60);b.flash=.07;SFX.bossHit();burst(s.x,s.y,C.cream,4);
@@ -390,8 +400,10 @@ function update(dt){
   const m=30*SR;if(ship.x<-m)ship.x=W+m;if(ship.x>W+m)ship.x=-m;if(ship.y<-m)ship.y=H+m;if(ship.y>H+m)ship.y=-m;
   ship.inv=Math.max(0,ship.inv-dt);ship.wob=Math.max(0,ship.wob-dt);
   assistT=Math.max(0,assistT-dt);
+  vgK+=((viagraT>0?1:0)-vgK)*Math.min(1,dt*8);
   fireT-=dt;if(keys.fire&&fireT<=0){shoot();fireT=viagraT>0?.08:.18}
   if(bombPressed){throwCondom();bombPressed=false}
+  if(viagraPressed){viagraPressed=false;if(viagras>0&&viagraT<=0){viagras--;viagraT=30;SFX.pickup();burst(ship.x,ship.y,'#4d7dff',22)}}
 
   // espermas: se eliminan al salir de la pantalla
   for(const s of sperms){s.t+=dt;s.x+=s.vx*dt;s.y+=s.vy*dt;if(s.x<-20||s.x>W+20||s.y<-20||s.y>H+20)s.life=0}
@@ -419,7 +431,9 @@ function update(dt){
     if(!frozen){e.t+=dt;e.rot+=e.vr*dt;e.x+=e.vx*dt+Math.sin(e.t*1.3)*12*dt;e.y+=e.vy*dt}
     if(e.x<e.r){e.x=e.r;e.vx=Math.abs(e.vx)}if(e.x>W-e.r){e.x=W-e.r;e.vx=-Math.abs(e.vx)}
     if(!frozen&&e.clotAt>0&&e.t>e.clotAt&&e.y>0){e.clotAt=-1;clots.push({x:e.x,y:e.y+e.r,vx:rnd(-20,20),vy:70,t:0});burst(e.x,e.y+e.r,C.red,6)}
-    for(const s of sperms){if(s.life>0&&Math.hypot(s.x-e.x,s.y-e.y)<e.r+4){s.life=0;e.hp--;e.flash=.15;burst(s.x,s.y,C.cream,6);if(e.hp>0)SFX.hit();if(e.hp<=0){killEgg(e);break}}}
+    for(const s of sperms){if(s.life>0&&Math.hypot(s.x-e.x,s.y-e.y)<(e.latex>0?e.r+11:e.r+4)){s.life=0;e.flash=.15;
+      if(e.latex>0){e.latex--;burst(s.x,s.y,'#bfe8ff',6);SFX.hit();if(e.latex<=0)burst(e.x,e.y,'#bfe8ff',18);continue}
+      e.hp--;burst(s.x,s.y,C.cream,6);if(e.hp>0)SFX.hit();if(e.hp<=0){killEgg(e);break}}}
     if(e.dead)continue;
     // choque con la nave: 1/4 de corazón
     if(ship.inv<=0&&Math.hypot(ship.x-e.x,ship.y-e.y)<e.r+14*SR){ship.inv=1.5;ship.vx=(ship.x-e.x)*4;ship.vy=(ship.y-e.y)*4;burst(ship.x,ship.y,C.red,12);hurt(.25,.2)}
@@ -453,7 +467,7 @@ function update(dt){
 let pickupT=0;
 function hurt(n,f){if(n>=1)SFX.floor();else SFX.hurt();lives=Math.max(0,Math.round((lives-n)*4)/4);flashT=f;if(lives<=0&&state==='play')gameOver()}
 function thrust(dt,p){
-  ship.vx+=Math.cos(ship.a)*300*p*dt;ship.vy+=Math.sin(ship.a)*300*p*dt;
+  const acc=300*(1+.35*vgK);ship.vx+=Math.cos(ship.a)*acc*p*dt;ship.vy+=Math.sin(ship.a)*acc*p*dt;
   if(Math.random()<.6*p)parts.push({x:ship.x-Math.cos(ship.a)*30*SR,y:ship.y-Math.sin(ship.a)*30*SR,vx:-Math.cos(ship.a)*80+rnd(-30,30),vy:-Math.sin(ship.a)*80+rnd(-30,30),life:.35,col:C.dim,r:rnd(1.5,3)});
 }
 function hud(){
@@ -466,11 +480,14 @@ function hud(){
     for(let i=0;i<3;i++){const f=Math.max(0,Math.min(1,lives-i));h+=`<span class="hrt"><span class="e">♥</span><span style="width:${f*100}%">♥</span></span>`}
     lv.innerHTML=h}
   bBomb.style.opacity=bombs>0?1:.4;
+  document.getElementById('vgHud').hidden=viagras<=0;document.getElementById('vg').textContent=viagras;
+  bViagra.hidden=viagras<=0;document.getElementById('bVgN').textContent=viagras;bViagra.style.opacity=viagraT>0?.4:1;
 }
 
 /* ---------- dibujo ---------- */
-function drawShip(x,y,a,S,alpha=1){
-  cx.save();cx.globalAlpha=alpha;cx.translate(x,y);cx.rotate(a+Math.sin(ship.wob*40)*.06);cx.scale(SR,SR);
+function drawShip(x,y,a,S,alpha=1,big=0){
+  const pulse=big*(.5+.5*Math.sin(performance.now()/95)),vk=1+big*.8+pulse*1.2;
+  cx.save();cx.globalAlpha=alpha;cx.translate(x,y);cx.rotate(a+Math.sin(ship.wob*40)*.06);cx.scale(SR*(1+.3*big),SR*(1+.3*big)*(1+pulse*.025));
   const g=cx.createLinearGradient(0,-10,0,10);g.addColorStop(0,S.a);g.addColorStop(1,S.b);
   cx.lineJoin='round';cx.lineCap='round';
   // pelos en la base
@@ -484,10 +501,14 @@ function drawShip(x,y,a,S,alpha=1){
   cx.strokeStyle='rgba(0,0,0,.4)';cx.lineWidth=1;cx.beginPath();cx.moveTo(-28,0);cx.lineTo(-12,0);cx.stroke();
   cx.fillStyle=g;cx.strokeStyle='#000';cx.lineWidth=2;
   cx.beginPath();cx.moveTo(-16,-9.5);cx.quadraticCurveTo(4,-11,20,-8.5);cx.lineTo(20,8.5);cx.quadraticCurveTo(4,11,-16,9.5);cx.closePath();cx.fill();cx.stroke();
-  cx.strokeStyle=S.vein;cx.lineWidth=1.6;
+  cx.strokeStyle=S.vein;cx.lineWidth=1.6*vk;
   cx.beginPath();cx.moveTo(-14,-3);cx.bezierCurveTo(-6,-7,0,0,7,-5);cx.bezierCurveTo(11,-8,14,-4,18,-6);cx.stroke();
   cx.beginPath();cx.moveTo(1,-2.5);cx.quadraticCurveTo(4,2,9,1);cx.stroke();
-  cx.lineWidth=1.3;cx.beginPath();cx.moveTo(-12,5);cx.bezierCurveTo(-4,3,2,8,12,4);cx.stroke();
+  cx.lineWidth=1.3*vk;cx.beginPath();cx.moveTo(-12,5);cx.bezierCurveTo(-4,3,2,8,12,4);cx.stroke();
+  if(big>.01){cx.save();cx.globalAlpha=alpha*big;cx.lineWidth=1.1*vk;
+    cx.beginPath();cx.moveTo(-15,7);cx.bezierCurveTo(-8,9,-2,4,5,8);cx.bezierCurveTo(9,10,13,7,18,8);cx.stroke();
+    cx.beginPath();cx.moveTo(-13,-7);cx.bezierCurveTo(-6,-4,2,-9,10,-6);cx.stroke();
+    cx.beginPath();cx.moveTo(6,-5);cx.quadraticCurveTo(10,0,6,4);cx.moveTo(-6,-1);cx.quadraticCurveTo(-3,3,-8,6);cx.stroke();cx.restore()}
   cx.fillStyle='rgba(246,231,200,.14)';cx.beginPath();cx.ellipse(2,-6,14,1.6,0,0,7);cx.fill();
   const tg=cx.createRadialGradient(24,-3,1,24,0,11);tg.addColorStop(0,S.tipL);tg.addColorStop(1,S.tip);
   cx.fillStyle=tg;cx.strokeStyle='#000';cx.lineWidth=2;
@@ -539,6 +560,10 @@ function drawEgg(e){
   cx.fillStyle='rgba(242,120,30,.45)';cx.beginPath();cx.arc(e.r*.2,-e.r*.15,e.r*.35,0,7);cx.fill();
   if(e.cu){cx.lineWidth=1.5;for(let i=0;i<4;i++){const a=i*1.57+.6;cx.fillStyle=COPPER;cx.beginPath();cx.arc(Math.cos(a)*e.r*.72,Math.sin(a)*e.r*.72,e.r*.18,0,7);cx.fill();cx.stroke()}cx.lineWidth=2.5}
   cx.rotate(-e.rot);
+  if(e.latex>0){const R=e.r+9;cx.fillStyle=`rgba(190,232,255,${.12+.08*e.latex})`;cx.strokeStyle=`rgba(225,245,255,${.5+.15*e.latex})`;cx.lineWidth=2.5;
+    cx.beginPath();cx.arc(0,0,R,0,7);cx.fill();cx.stroke();
+    cx.fillStyle='rgba(255,255,255,.55)';cx.beginPath();cx.ellipse(-R*.4,-R*.45,R*.25,R*.1,-.7,0,7);cx.fill();
+    cx.strokeStyle='rgba(60,90,110,.8)';cx.lineWidth=1.5;for(let i=0;i<3-e.latex;i++){const a=i*2.1+.5;cx.beginPath();cx.moveTo(Math.cos(a)*R,Math.sin(a)*R);cx.lineTo(Math.cos(a+.15)*R*.7,Math.sin(a+.15)*R*.7);cx.lineTo(Math.cos(a-.1)*R*.55,Math.sin(a-.1)*R*.55);cx.stroke()}}
   cx.fillStyle='#000';cx.beginPath();cx.arc(-e.r*.3,e.r*.05,e.r*.09,0,7);cx.arc(e.r*.3,e.r*.05,e.r*.09,0,7);cx.fill();
   cx.beginPath();cx.ellipse(0,e.r*.38,e.r*.1,e.r*.13,0,0,7);cx.fill();
   if(e.max>1){cx.strokeStyle='#000';cx.lineWidth=2;for(let i=0;i<e.max-e.hp;i++){cx.beginPath();cx.moveTo(-e.r*.6+i*e.r*.5,-e.r*.7);cx.lineTo(-e.r*.45+i*e.r*.5,-e.r*.4);cx.lineTo(-e.r*.6+i*e.r*.5,-e.r*.2);cx.stroke()}}
@@ -591,13 +616,14 @@ function draw(time){
     const fade=assistT<2.5&&Math.floor(assistT*8)%2?.35:1;
     for(const w of wingmen())drawShip(w.x,w.y,w.a,w.skin,fade);
     if(viagraT>0){cx.save();cx.globalAlpha=.25+.15*Math.sin(time/80);cx.fillStyle='#4d7dff';cx.beginPath();cx.arc(ship.x,ship.y,40*SR,0,7);cx.fill();cx.restore()}
-    if(!(ship.inv>0&&Math.floor(ship.inv*12)%2))drawShip(ship.x,ship.y,ship.a,SKINS.main);
+    if(!(ship.inv>0&&Math.floor(ship.inv*12)%2))drawShip(ship.x,ship.y,ship.a,SKINS.main,1,vgK);
   }
   if(joy.active){cx.globalAlpha=.5;cx.strokeStyle=C.cream;cx.lineWidth=2;cx.beginPath();cx.arc(joy.ox,joy.oy,60,0,7);cx.stroke();
     cx.fillStyle=C.orange;cx.beginPath();cx.arc(joy.ox+joy.dx,joy.oy+joy.dy,22,0,7);cx.fill();cx.globalAlpha=1}
   if(flashT>0){cx.fillStyle=`rgba(242,120,30,${flashT})`;cx.fillRect(0,0,W,H)}
   cx.textAlign='center';cx.font=`${Math.min(28,W/14)}px Bungee, Impact, sans-serif`;
   if(waveBanner>0&&state==='play'){cx.globalAlpha=Math.min(1,waveBanner);cx.fillStyle='#000';cx.fillText('OLEADA '+wave,W/2+3,H*.4+3);cx.fillStyle=C.orange;cx.fillText('OLEADA '+wave,W/2,H*.4);cx.globalAlpha=1}
+  if(pickupT>0){cx.globalAlpha=Math.min(1,pickupT);cx.fillStyle='#000';cx.fillText('¡LLEGARON LOS COMPAS!',W/2+3,H*.4+3);cx.fillStyle=C.cream;cx.fillText('¡LLEGARON LOS COMPAS!',W/2,H*.4);cx.globalAlpha=1}
   drawBossUI(time);
   cx.restore();
 }
@@ -661,13 +687,16 @@ function drawBossUI(time){
   if(alarmT>0){const p=.5+.5*Math.sin(time/90);
     const vg=cx.createRadialGradient(W/2,H/2,Math.min(W,H)*.25,W/2,H/2,Math.max(W,H)*.75);vg.addColorStop(0,'rgba(179,38,30,0)');vg.addColorStop(1,`rgba(220,30,20,${.35+.3*p})`);
     cx.fillStyle=vg;cx.fillRect(0,0,W,H);
+    const size=Math.min(46,W/14),y=H*.42;
+    stripes(y-size*1.4,time);stripes(y+size*2.1,time);
+    if(Math.floor(time/220)%4!==3)bigText(wave===20?['¡CONDÓN GIGANTE','A LA VISTA!']:['¡TU FERTILIDAD','ESTÁ EN RIESGO!'],'#ff2a1f',size,y);
   }
   if(boss){const cd=boss.kind==='condom',bw=Math.max(160,Math.min(W-150,420)),bx=(W-bw)/2,by=76,f=cd?boss.fill:boss.hp/boss.max;
     cx.fillStyle='#000';cx.fillRect(bx-3,by-3,bw+6,16);
     const gr=cx.createLinearGradient(bx,0,bx+bw,0);gr.addColorStop(0,cd?C.cream:C.red);gr.addColorStop(1,cd?C.orange:COPPER);cx.fillStyle=gr;cx.fillRect(bx,by,bw*f,10);
     cx.strokeStyle=C.cream;cx.lineWidth=1.5;cx.strokeRect(bx-1.5,by-1.5,bw+3,13);
     cx.font='800 11px Nunito, system-ui';cx.fillStyle=C.cream;cx.textAlign='center';cx.textBaseline='alphabetic';cx.fillText(cd?'CONDÓN GIGANTE · LLÉNALO':'DIU DE COBRE',W/2,by-7)}
-  if(viagraMsgT>0){const sz=Math.min(30,W/16);bigText(['¡VIAGRA! +1 VIDA','DISPARO RÁPIDO'],'#6f97ff',sz,H*.6,Math.min(1,viagraMsgT/.5))}
+  if(viagraMsgT>0){const sz=Math.min(30,W/16);bigText(['¡+1 VIDA!','¡3 VIAGRAS!'],'#6f97ff',sz,H*.6,Math.min(1,viagraMsgT/.5))}
   if(winT>0){const a=Math.min(1,winT/.6),s=Math.min(1,(4-winT)*3),size=Math.min(44,W/14)*(.6+.4*s);
     bigText(winMsg,C.orange,size,H*.42,a)}
 }
