@@ -1,0 +1,12 @@
+[build]
+  publish = "."
+
+[dev]
+  framework = "#static"
+  publish = "."
+  port = 8888
+
+[[redirects]]
+  from = "/"
+  to = "/Fecundaroids.html"
+  status = 200

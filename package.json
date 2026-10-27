@@ -1,0 +1,7 @@
+{
+  "name": "fecundaroids",
+  "private": true,
+  "scripts": {
+    "dev": "netlify dev"
+  }
+}
