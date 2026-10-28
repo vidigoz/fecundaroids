@@ -3,5 +3,8 @@
   "private": true,
   "scripts": {
     "dev": "netlify dev"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.0"
   }
 }
